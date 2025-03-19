@@ -1,45 +1,85 @@
 
-    // Create Dino Constructor
+    // Create Base Class
     class BaseTile {
-      #title;
-      #imageFile;
-      #body;
+      _title;
+      _imageFile;
+      _body;
 
       constructor(title, imageFile, body) {
-        this.#title = title;
-        this.#imageFile = imageFile;
-        this.#body = body;
+        this._title = title;
+        this._imageFile = imageFile;
+        this._body = body;
       }
 
+      // Create HTML for the Tile
       getElement() {
         const tile = document.createElement('div');
         tile.className = 'grid-item';
-        tile.innerHTML = `<h3>${this.#title}</h3>` +
-          `<img src="${this.#imageFile}">`;
-        if (this.#body) {
-          tile.innerHTML += `<p>${this.#body}</p>`;
+        tile.innerHTML = `<h3>${this._title}</h3>` +
+          `<img src="${this._imageFile}">`;
+        if (this._body) {
+          tile.innerHTML += `<p>${this._body}</p>`;
         }
         return tile;
       }
     }
 
+    // Create Dino Class
     class Dino extends BaseTile {
-      constructor(dinoObject) {
-        const keys = ['weight', 'height', 'diet', 'where', 'when', 'fact'];
-        const imgFile = 'images/' + dinoObject.species.toLowerCase() + '.png';
-        const idx = Math.floor(Math.random() * 6);
+      _category;
 
-        let fact;
-        if (dinoObject.species == 'Pigeon') {
-          fact = dinoObject.fact;
-        } else {
-          fact = dinoObject[keys[idx]];
+      constructor(dinoObject) {
+        // Array of possible fact categories.
+        const keys = ['weight', 'height', 'diet', 'where', 'when', 'fact'];
+        // Image files are named according to the species.
+        const imgFile = 'images/' + dinoObject.species.toLowerCase() + '.png';
+        // Pick a random fact unless it is a pigeon.
+        const idx = dinoObject.species == 'Pigeon' ? 5 : Math.floor(Math.random() * 6);
+
+        // Call the base class constructor.
+        super(dinoObject.species, imgFile, dinoObject[keys[idx]]);
+
+        // Save the fact category selected.
+        this._category = keys[idx];
+      }
+
+      // Comparison Method
+      compare(human) {
+        let ratio;
+        let result = true;
+        switch (this._category) {
+          case 'weight':
+            // Create Dino Compare Method 1
+            // NOTE: Weight in JSON file is in lbs, height in inches. 
+            ratio = Math.round(10.0 * this._body / Number(human.getWeight())) / 10.0;
+            this._body = `Weight: ${this._body} lbs, ${ratio} x ${human.getName()}`;
+            break;
+          case 'height':
+            // Create Dino Compare Method 2
+            // NOTE: Weight in JSON file is in lbs, height in inches.
+            ratio = Math.round(10.0 * this._body / (Number(human.getFeet()) * 12 + Number(human.getInches()))) / 10.0;
+            this._body = `Height: ${this._body} inches, ${ratio} x ${human.getName()}`;
+            break;
+          case 'diet':
+            // Create Dino Compare Method 3
+            // NOTE: Weight in JSON file is in lbs, height in inches.
+            this._body = `Diet: ${this._body}, ${human.getName()}: ${human.getDiet().toLowerCase()}`;
+            break;
+          default:
+            // Do Nothing
+            result = false;
         }
 
-        super(dinoObject.species, imgFile, fact);
+        return result;
       }
     }
 
+    // Create Human Class
+    class Human extends BaseTile {
+      constructor(name) {
+        super(name, 'images/human.png', null);
+      }
+    }
 
     // Create Dino Objects
     // Due to CORS error, JSON can no longer be read from a local file.
@@ -120,15 +160,8 @@
     ];
     console.log(dinos);
 
-    // Create Human Object
-    class Human extends BaseTile {
-      constructor(name) {
-        super(name, 'images/human.png', null);
-      }
-    }
-
     // Use IIFE to get human data from form
-    const form = (() => {
+    const humanData = (() => {
       const nameElement = document.getElementById('name');
       const feetElement = document.getElementById('feet');
       const inchesElement = document.getElementById('inches');
@@ -164,50 +197,27 @@
       };
     })();
 
-
-    // Create Dino Compare Method 1
-    // NOTE: Weight in JSON file is in lbs, height in inches. 
-
-    
-    // Create Dino Compare Method 2
-    // NOTE: Weight in JSON file is in lbs, height in inches.
-
-    
-    // Create Dino Compare Method 3
-    // NOTE: Weight in JSON file is in lbs, height in inches.
-
-
-    // Generate Tiles for each Dino in Array
-  
-        // Add tiles to DOM
-
-    // Remove form from screen
-
-
 // On button click, prepare and display infographic
 const button = document.getElementById('btn');
 button.addEventListener('click', (event) => {
-  // DEBUG
-  console.log(form.getName());
-  console.log(form.getFeet());
-  console.log(form.getInches());
-  console.log(form.getWeight());
-  console.log(form.getDiet());
-
-  // hide the form element
+  // Remove form from screen
   const formElement = document.getElementById('dino-compare');
   formElement.style.display = 'none';
 
   const grid = document.getElementById('grid');
-  // add grid items
+  // Add Grid Items
   for (let i = 0; i < 9; i++) {
     let tile;
     if (i == 4) {
-      tile = new Human(form.getName());
+      // Generate the Human Tile
+      tile = new Human(humanData.getName());
     } else {
       const k = i > 4 ? i - 1 : i;
+      // Generate Tiles for each Dino in Array
       tile = new Dino(dinos[k]);
+      tile.compare(humanData);
     }
+    // Add Tiles to DOM
     grid.appendChild(tile.getElement());
   }
 });
